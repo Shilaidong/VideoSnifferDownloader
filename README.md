@@ -4,11 +4,15 @@
 
 它的目标是做成“单文件夹可携带”的形态：项目目录可以整体移动，移动后只需要重新注册一次 Native Messaging 宿主即可继续使用。
 
+如果你只是想尽快装好直接用，请看小白版说明：
+[README-BEGINNER.md](./README-BEGINNER.md)
+
 ## 开源说明
 
 - 本项目许可证：`GPL-3.0-or-later`
 - 代码仓库：<https://github.com/Shilaidong/VideoSnifferDownloader>
 - 第三方说明：见 [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)
+- 小白安装版：见 [README-BEGINNER.md](./README-BEGINNER.md)
 
 ## 致谢与上游引用
 
