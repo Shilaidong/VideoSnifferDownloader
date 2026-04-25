@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Video Sniffer Downloader</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="app">
+      <header class="hero">
+        <p class="eyebrow">Video Sniffer Downloader</p>
+        <h1 id="pageTitle">正在读取当前页面…</h1>
+        <p class="subtle" id="pageUrl"></p>
+      </header>
+
+      <section class="toolbar">
+        <button id="refreshButton" type="button">刷新列表</button>
+        <button id="clearButton" type="button">清空当前页</button>
+      </section>
+
+      <section id="status" class="status"></section>
+      <section id="mediaList" class="list"></section>
+    </main>
+
+    <template id="mediaCardTemplate">
+      <article class="card">
+        <div class="meta">
+          <span class="badge media-type"></span>
+          <span class="badge size"></span>
+        </div>
+        <h2 class="title"></h2>
+        <p class="url"></p>
+        <div class="actions">
+          <button class="launch" type="button">发送到 N_m3u8DL-RE</button>
+          <button class="copy" type="button">复制链接</button>
+        </div>
+      </article>
+    </template>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
