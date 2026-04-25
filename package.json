@@ -1,0 +1,15 @@
+{
+  "name": "video-sniffer-downloader",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chrome extension plus native host bridge for N_m3u8DL-RE and ffmpeg.",
+  "scripts": {
+    "build:host": "powershell -ExecutionPolicy Bypass -File ./scripts/build-host.ps1",
+    "download:runtime": "powershell -ExecutionPolicy Bypass -File ./scripts/download-runtime.ps1",
+    "register:host": "powershell -ExecutionPolicy Bypass -File ./scripts/register-native-host.ps1",
+    "build:all": "powershell -ExecutionPolicy Bypass -File ./scripts/build-all.ps1"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  }
+}
