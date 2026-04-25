@@ -1,0 +1,11 @@
+node_modules/
+.tmp/
+runtime/bin/*
+!runtime/bin/.gitkeep
+runtime/native-host/*.exe
+runtime/native-host/*.json
+runtime/native-host/*.cmd
+runtime/native-host/*.ps1
+runtime/native-host/*.log
+runtime/native-host/requests/
+dist/
