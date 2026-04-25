@@ -1,0 +1,167 @@
+:root {
+  color-scheme: light;
+  --bg: #f6efe5;
+  --panel: rgba(255, 252, 247, 0.96);
+  --ink: #1e1b18;
+  --muted: #6d6259;
+  --line: rgba(68, 54, 42, 0.15);
+  --accent: #0f7a5c;
+  --accent-strong: #0a5d46;
+  --warning: #b34b2f;
+  --shadow: 0 16px 40px rgba(62, 41, 20, 0.14);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 420px;
+  min-height: 520px;
+  background:
+    radial-gradient(circle at top right, rgba(15, 122, 92, 0.18), transparent 42%),
+    radial-gradient(circle at top left, rgba(179, 75, 47, 0.14), transparent 34%),
+    linear-gradient(180deg, #fcf7f0 0%, var(--bg) 100%);
+  color: var(--ink);
+  font: 14px/1.5 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+
+.app {
+  padding: 18px;
+}
+
+.hero {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--accent-strong);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.subtle {
+  margin: 10px 0 0;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+.toolbar {
+  display: flex;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+button {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: #e7ddd0;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  transition: transform 120ms ease, background-color 120ms ease, opacity 120ms ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.status {
+  min-height: 22px;
+  margin-bottom: 10px;
+  color: var(--muted);
+}
+
+.status.error {
+  color: var(--warning);
+}
+
+.status.success {
+  color: var(--accent-strong);
+}
+
+.list {
+  display: grid;
+  gap: 12px;
+}
+
+.card {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 252, 247, 0.94);
+  box-shadow: 0 10px 24px rgba(62, 41, 20, 0.08);
+}
+
+.meta {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: #efe2d2;
+  color: #533f30;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0 0 8px;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.url {
+  margin: 0 0 14px;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.launch {
+  background: var(--accent);
+  color: #fff;
+}
+
+.launch:hover {
+  background: var(--accent-strong);
+}
+
+.empty {
+  padding: 18px;
+  border: 1px dashed var(--line);
+  border-radius: 18px;
+  color: var(--muted);
+  text-align: center;
+}
