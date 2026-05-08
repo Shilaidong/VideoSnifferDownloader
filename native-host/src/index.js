@@ -312,14 +312,14 @@ function writeLauncher(launcherPath, requestPath, runtimeRoot, platform, payload
         `cd ${shellQuoteArg(runtimeRoot)}`,
         "mkdir -p \"$(dirname \"$LOG_PATH\")\"",
         `printf '[%s] runner start url=%s\\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" ${shellQuoteArg(payload.url)} >> "$LOG_PATH"`,
-        command,
+        "if command -v script >/dev/null 2>&1; then",
+        `  /usr/bin/script -qa "$LOG_PATH" /bin/bash -lc ${shellQuoteArg(command)} >/dev/null 2>&1`,
+        "else",
+        `  ${command} >> "$LOG_PATH" 2>&1`,
+        "fi",
         "EXIT_CODE=$?",
         "printf '[%s] runner exit=%s\\n' \"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\" \"$EXIT_CODE\" >> \"$LOG_PATH\"",
         "rm -f \"$REQUEST_PATH\" \"$LAUNCHER_PATH\"",
-        "echo",
-        "echo \"[Video Sniffer Downloader] Task finished. Exit code: $EXIT_CODE\"",
-        "echo \"Press any key to close this window.\"",
-        "read -n 1 -s",
         "exit \"$EXIT_CODE\"",
         ""
       ].join("\n"),
@@ -356,21 +356,15 @@ function openLauncher(launcherPath, requestPath, runtimeRoot, hostDir, platform)
     );
   }
 
-  fs.rmSync(launcherPath, { force: true });
-
   const logPath = path.join(hostDir, "native-host.log");
   const outFd = fs.openSync(logPath, "a");
   const errFd = fs.openSync(logPath, "a");
 
   try {
-    const child = spawn(process.execPath, [], {
+    const child = spawn("/bin/bash", [launcherPath], {
       cwd: runtimeRoot,
       detached: true,
-      env: {
-        ...process.env,
-        VIDEO_SNIFFER_RUN_DOWNLOAD: "1",
-        VIDEO_SNIFFER_REQUEST_FILE: requestPath
-      },
+      env: process.env,
       stdio: ["ignore", outFd, errFd]
     });
     child.unref();
