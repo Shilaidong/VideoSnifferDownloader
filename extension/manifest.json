@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Video Sniffer Downloader",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Sniff webpage video URLs and send them to N_m3u8DL-RE in a local terminal window.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsHPyipe3K0/qWtMIDOyPZ0YleVXjv9amchsYJhlOmvkVbI4BDdwrmUAGYL8Tp6JcmoG+TkyvmZMKCyYKspRb7IZUNMZCIE6pnN+jdhExuPRHCRxLqRxze5LOv8nWnA1kXSX3V0gDs7vBkABRNVbRbUphdB/xxGWG6s9OoD134WHjWo5G1/azN4p0xC/9xlvoscNMNqvGUJLuJJ9K3PrCGqhWUwPYKpNvMZwPJgcGZMOlLnTj0LH2vfiJojxJQTvDwqI9HaRiir+0gG5LebHIedIshERXdi5dTmtdgzlLvon1Sp0aRLkGwAUej6df5ZC2+QLtrMKpdBASLwV+GnSUMQIDAQAB",
   "minimum_chrome_version": "116",

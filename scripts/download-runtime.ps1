@@ -73,7 +73,7 @@ Get-ChildItem -LiteralPath $nmExtract -Recurse -File | ForEach-Object {
 }
 
 $ffmpegRelease = Get-GitHubLatestRelease -Repository "BtbN/FFmpeg-Builds"
-$ffmpegUrl = Get-AssetUrlFromRelease -Release $ffmpegRelease -Pattern "^ffmpeg-N-.+-win64-gpl\.zip$"
+$ffmpegUrl = Get-AssetUrlFromRelease -Release $ffmpegRelease -Pattern "^ffmpeg-(master|n[\d.]+)-latest-win64-gpl(-[\d.]+)?\.zip$"
 $ffmpegArchive = Join-Path $cacheDir "ffmpeg-win64.zip"
 $ffmpegExtract = Join-Path $cacheDir "ffmpeg"
 
