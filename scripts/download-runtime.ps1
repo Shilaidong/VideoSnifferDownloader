@@ -10,33 +10,29 @@ $cacheDir = Join-Path $root ".tmp\downloads"
 New-Item -ItemType Directory -Force -Path $binDir | Out-Null
 New-Item -ItemType Directory -Force -Path $cacheDir | Out-Null
 
-function Get-GitHubLatestReleasePage {
+function Get-GitHubLatestRelease {
   param(
     [Parameter(Mandatory = $true)]
     [string]$Repository
   )
 
-  return Invoke-WebRequest -Uri "https://github.com/$Repository/releases/latest" -Headers @{ "User-Agent" = "Codex" }
+  return Invoke-RestMethod -Uri "https://api.github.com/repos/$Repository/releases/latest" -Headers @{ "User-Agent" = "Codex" }
 }
 
-function Get-AssetUrlFromPage {
+function Get-AssetUrlFromRelease {
   param(
     [Parameter(Mandatory = $true)]
-    $Page,
+    $Release,
     [Parameter(Mandatory = $true)]
     [string]$Pattern
   )
 
-  $asset = $Page.Links | Where-Object { $_.href -match $Pattern } | Select-Object -First 1
-  if (-not $asset -or -not $asset.href) {
+  $asset = $Release.assets | Where-Object { $_.name -match $Pattern } | Select-Object -First 1
+  if (-not $asset -or -not $asset.browser_download_url) {
     throw "Unable to find asset matching pattern: $Pattern"
   }
 
-  if ($asset.href.StartsWith("http")) {
-    return $asset.href
-  }
-
-  return "https://github.com$($asset.href)"
+  return $asset.browser_download_url
 }
 
 function Expand-ToTemp {
@@ -54,8 +50,8 @@ function Expand-ToTemp {
   Expand-Archive -LiteralPath $ArchivePath -DestinationPath $Destination -Force
 }
 
-$nmReleasePage = Get-GitHubLatestReleasePage -Repository "nilaoda/N_m3u8DL-RE"
-$nmUrl = Get-AssetUrlFromPage -Page $nmReleasePage -Pattern "win-x64.*\.zip$"
+$nmRelease = Get-GitHubLatestRelease -Repository "nilaoda/N_m3u8DL-RE"
+$nmUrl = Get-AssetUrlFromRelease -Release $nmRelease -Pattern "win-x64.*\.zip$"
 $nmArchive = Join-Path $cacheDir "N_m3u8DL-RE-win-x64.zip"
 $nmExtract = Join-Path $cacheDir "N_m3u8DL-RE"
 
