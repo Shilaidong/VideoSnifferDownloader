@@ -269,7 +269,7 @@ function getRuntimeBinaries(platform, binDir) {
 }
 
 function createLauncherPath(hostDir, requestId, platform) {
-  const extension = platform === "windows" ? "cmd" : "sh";
+  const extension = platform === "windows" ? "cmd" : "command";
   return path.join(hostDir, `launch-${requestId}.${extension}`);
 }
 
@@ -356,9 +356,7 @@ function openLauncher(launcherPath, requestPath, runtimeRoot, hostDir, platform)
     );
   }
 
-  const terminalCommand = `/bin/bash ${shellQuoteArg(launcherPath)}`;
-
-  return spawnSync("osascript", ["-e", `tell application "Terminal" to do script "${escapeForAppleScript(terminalCommand)}"`], {
+  return spawnSync("open", [launcherPath], {
     cwd: hostDir,
     encoding: "utf8"
   });

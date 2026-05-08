@@ -1,6 +1,6 @@
 {
   "name": "video-sniffer-downloader",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": false,
   "description": "Chrome extension plus native host bridge for N_m3u8DL-RE and ffmpeg.",
   "license": "GPL-3.0-or-later",
