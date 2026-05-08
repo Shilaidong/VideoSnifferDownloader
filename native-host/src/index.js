@@ -106,7 +106,7 @@ function launchDownload(item, options) {
 
   const requestId = `${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
   const requestPath = path.join(requestDir, `request-${requestId}.json`);
-  const launcherPath = createLauncherPath(hostDir, requestId, currentPlatform);
+  const launcherPath = currentPlatform === "windows" ? createLauncherPath(hostDir, requestId) : "";
 
   const payload = {
     hostName: HOST_NAME,
@@ -122,10 +122,12 @@ function launchDownload(item, options) {
   };
 
   fs.writeFileSync(requestPath, JSON.stringify(payload, null, 2), "utf8");
-  writeLauncher(launcherPath, requestPath, runtimeRoot, currentPlatform, payload, debugLogPath);
+  if (currentPlatform === "windows") {
+    writeLauncher(launcherPath, requestPath, runtimeRoot);
+  }
   appendDebugLog(debugLogPath, `launch request created: ${requestPath}`);
 
-  const openResult = openLauncher(launcherPath, requestPath, runtimeRoot, hostDir, currentPlatform);
+  const openResult = openLauncher(launcherPath, requestPath, runtimeRoot, hostDir, currentPlatform, payload, debugLogPath);
   appendDebugLog(debugLogPath, `opener exit=${openResult.status} error=${openResult.error ? openResult.error.message : ""}`);
   if (openResult.stdout) {
     appendDebugLog(debugLogPath, `opener stdout: ${openResult.stdout.trim()}`);
@@ -146,7 +148,7 @@ function launchDownload(item, options) {
     launched: true,
     platform: currentPlatform,
     requestPath,
-    launcherPath,
+    launcherPath: launcherPath || null,
     downloadsDir
   };
 }
@@ -268,71 +270,34 @@ function getRuntimeBinaries(platform, binDir) {
   };
 }
 
-function createLauncherPath(hostDir, requestId, platform) {
-  const extension = platform === "windows" ? "cmd" : "command";
-  return path.join(hostDir, `launch-${requestId}.${extension}`);
+function createLauncherPath(hostDir, requestId) {
+  return path.join(hostDir, `launch-${requestId}.cmd`);
 }
 
-function writeLauncher(launcherPath, requestPath, runtimeRoot, platform, payload, debugLogPath) {
+function writeLauncher(launcherPath, requestPath, runtimeRoot) {
   const hostExe = process.execPath;
 
-  if (platform === "windows") {
-    fs.writeFileSync(
-      launcherPath,
-      [
-        "@echo off",
-        "setlocal",
-        "chcp 65001>nul",
-        `cd /d "${escapeForCmd(runtimeRoot)}"`,
-        "set VIDEO_SNIFFER_RUN_DOWNLOAD=1",
-        `set VIDEO_SNIFFER_REQUEST_FILE=${escapeForCmd(requestPath)}`,
-        `"${escapeForCmd(hostExe)}"`,
-        "set EXIT_CODE=%errorlevel%",
-        `del /q "${escapeForCmd(requestPath)}" >nul 2>nul`,
-        "echo.",
-        "echo [Video Sniffer Downloader] Task finished. Exit code: %EXIT_CODE%",
-        "endlocal"
-      ].join("\r\n"),
-      "utf8"
-    );
-    return;
-  }
-
-  if (platform === "macos") {
-    const args = buildDownloaderArgs(payload);
-    const command = [payload.nm3u8Path, ...args].map(shellQuoteArg).join(" ");
-    fs.writeFileSync(
-      launcherPath,
-      [
-        "#!/bin/bash",
-        "set -u",
-        `REQUEST_PATH=${shellQuoteArg(requestPath)}`,
-        `LAUNCHER_PATH=${shellQuoteArg(launcherPath)}`,
-        `LOG_PATH=${shellQuoteArg(debugLogPath)}`,
-        `cd ${shellQuoteArg(runtimeRoot)}`,
-        "mkdir -p \"$(dirname \"$LOG_PATH\")\"",
-        `printf '[%s] runner start url=%s\\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" ${shellQuoteArg(payload.url)} >> "$LOG_PATH"`,
-        "if command -v script >/dev/null 2>&1; then",
-        `  /usr/bin/script -qa "$LOG_PATH" /bin/bash -lc ${shellQuoteArg(command)} >/dev/null 2>&1`,
-        "else",
-        `  ${command} >> "$LOG_PATH" 2>&1`,
-        "fi",
-        "EXIT_CODE=$?",
-        "printf '[%s] runner exit=%s\\n' \"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\" \"$EXIT_CODE\" >> \"$LOG_PATH\"",
-        "rm -f \"$REQUEST_PATH\" \"$LAUNCHER_PATH\"",
-        "exit \"$EXIT_CODE\"",
-        ""
-      ].join("\n"),
-      "utf8"
-    );
-    fs.chmodSync(launcherPath, 0o700);
-    return;
-  }
-
-  throw new Error(`Unsupported launcher platform: ${platform}`);
+  fs.writeFileSync(
+    launcherPath,
+    [
+      "@echo off",
+      "setlocal",
+      "chcp 65001>nul",
+      `cd /d "${escapeForCmd(runtimeRoot)}"`,
+      "set VIDEO_SNIFFER_RUN_DOWNLOAD=1",
+      `set VIDEO_SNIFFER_REQUEST_FILE=${escapeForCmd(requestPath)}`,
+      `"${escapeForCmd(hostExe)}"`,
+      "set EXIT_CODE=%errorlevel%",
+      `del /q "${escapeForCmd(requestPath)}" >nul 2>nul`,
+      "echo.",
+      "echo [Video Sniffer Downloader] Task finished. Exit code: %EXIT_CODE%",
+      "endlocal"
+    ].join("\r\n"),
+    "utf8"
+  );
 }
 
-function openLauncher(launcherPath, requestPath, runtimeRoot, hostDir, platform) {
+function openLauncher(launcherPath, requestPath, runtimeRoot, hostDir, platform, payload, debugLogPath) {
   if (platform === "windows") {
     const openerScript = path.join(hostDir, "open-cmd-window.ps1");
     ensureFileExists(openerScript, "Native host missing runtime/native-host/open-cmd-window.ps1");
@@ -356,12 +321,35 @@ function openLauncher(launcherPath, requestPath, runtimeRoot, hostDir, platform)
     );
   }
 
+  return startMacDownload(requestPath, runtimeRoot, hostDir, payload, debugLogPath);
+}
+
+function startMacDownload(requestPath, runtimeRoot, hostDir, payload, debugLogPath) {
+  const args = buildDownloaderArgs(payload);
+  const command = [payload.nm3u8Path, ...args].map(shellQuoteArg).join(" ");
+  const runnerScript = [
+    "set -u",
+    `REQUEST_PATH=${shellQuoteArg(requestPath)}`,
+    `LOG_PATH=${shellQuoteArg(debugLogPath)}`,
+    `cd ${shellQuoteArg(runtimeRoot)}`,
+    "mkdir -p \"$(dirname \"$LOG_PATH\")\"",
+    `printf '[%s] runner start url=%s\\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" ${shellQuoteArg(payload.url)} >> "$LOG_PATH"`,
+    "if command -v script >/dev/null 2>&1; then",
+    `  /usr/bin/script -qa "$LOG_PATH" /bin/bash -lc ${shellQuoteArg(command)} >/dev/null 2>&1`,
+    "else",
+    `  ${command} >> "$LOG_PATH" 2>&1`,
+    "fi",
+    "EXIT_CODE=$?",
+    "printf '[%s] runner exit=%s\\n' \"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\" \"$EXIT_CODE\" >> \"$LOG_PATH\"",
+    "rm -f \"$REQUEST_PATH\"",
+    "exit \"$EXIT_CODE\""
+  ].join("\n");
   const logPath = path.join(hostDir, "native-host.log");
   const outFd = fs.openSync(logPath, "a");
   const errFd = fs.openSync(logPath, "a");
 
   try {
-    const child = spawn("/bin/bash", [launcherPath], {
+    const child = spawn("/bin/bash", ["-lc", runnerScript], {
       cwd: runtimeRoot,
       detached: true,
       env: process.env,

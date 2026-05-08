@@ -32,7 +32,7 @@
 - 将目标资源直接转交给本地 `N_m3u8DL-RE`
 - 自动使用网页标题作为保存名
 - 默认保存到当前系统用户的 `Downloads` 目录
-- 通过新的 Windows `cmd` 或 macOS 终端窗口显示 `N_m3u8DL-RE` 原始输出
+- Windows 通过 `cmd` 窗口显示 `N_m3u8DL-RE` 输出，macOS 使用后台伪终端避免系统拦截临时脚本
 - 在扩展弹窗中切换启动方式：自动识别、Windows、macOS
 
 ## 当前架构
@@ -140,7 +140,7 @@ npm run package:release:mac
 3. 点击扩展图标
 4. 如有需要，在“启动方式”里选择自动识别、Windows 或 macOS
 5. 选择目标资源，点击“发送到 N_m3u8DL-RE”
-6. 会弹出一个新的终端窗口执行下载
+6. Windows 会弹出一个新的 `cmd` 窗口执行下载；macOS 会在后台启动下载任务
 
 下载文件默认保存到：
 

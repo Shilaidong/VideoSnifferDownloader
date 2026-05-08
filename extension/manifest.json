@@ -1,10 +1,16 @@
 {
   "manifest_version": 3,
   "name": "Video Sniffer Downloader",
-  "version": "0.2.4",
-  "description": "Sniff webpage video URLs and send them to N_m3u8DL-RE in a local terminal window.",
+  "version": "0.2.5",
+  "description": "Find video playlist URLs on webpages and send them to local N_m3u8DL-RE for downloading.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsHPyipe3K0/qWtMIDOyPZ0YleVXjv9amchsYJhlOmvkVbI4BDdwrmUAGYL8Tp6JcmoG+TkyvmZMKCyYKspRb7IZUNMZCIE6pnN+jdhExuPRHCRxLqRxze5LOv8nWnA1kXSX3V0gDs7vBkABRNVbRbUphdB/xxGWG6s9OoD134WHjWo5G1/azN4p0xC/9xlvoscNMNqvGUJLuJJ9K3PrCGqhWUwPYKpNvMZwPJgcGZMOlLnTj0LH2vfiJojxJQTvDwqI9HaRiir+0gG5LebHIedIshERXdi5dTmtdgzlLvon1Sp0aRLkGwAUej6df5ZC2+QLtrMKpdBASLwV+GnSUMQIDAQAB",
   "minimum_chrome_version": "116",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "permissions": [
     "nativeMessaging",
     "storage",
@@ -19,6 +25,12 @@
   },
   "action": {
     "default_title": "Video Sniffer Downloader",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
     "default_popup": "popup.html"
   }
 }

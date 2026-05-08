@@ -13,3 +13,4 @@ runtime/native-host/*.ps1
 runtime/native-host/*.log
 runtime/native-host/requests/
 dist/
+store-assets/
