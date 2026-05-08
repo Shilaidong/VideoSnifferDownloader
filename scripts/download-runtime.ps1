@@ -10,13 +10,23 @@ $cacheDir = Join-Path $root ".tmp\downloads"
 New-Item -ItemType Directory -Force -Path $binDir | Out-Null
 New-Item -ItemType Directory -Force -Path $cacheDir | Out-Null
 
+function Get-GitHubHeaders {
+  $headers = @{ "User-Agent" = "Codex" }
+  if ($env:GITHUB_TOKEN) {
+    $headers["Authorization"] = "Bearer $($env:GITHUB_TOKEN)"
+    $headers["X-GitHub-Api-Version"] = "2022-11-28"
+  }
+
+  return $headers
+}
+
 function Get-GitHubLatestRelease {
   param(
     [Parameter(Mandatory = $true)]
     [string]$Repository
   )
 
-  return Invoke-RestMethod -Uri "https://api.github.com/repos/$Repository/releases/latest" -Headers @{ "User-Agent" = "Codex" }
+  return Invoke-RestMethod -Uri "https://api.github.com/repos/$Repository/releases/latest" -Headers (Get-GitHubHeaders)
 }
 
 function Get-AssetUrlFromRelease {

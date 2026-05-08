@@ -23,6 +23,8 @@ jobs:
   build:
     name: Build ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
     strategy:
       fail-fast: false
       matrix:

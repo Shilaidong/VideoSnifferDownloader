@@ -7,6 +7,11 @@ CACHE_DIR="$ROOT/.tmp/downloads"
 
 mkdir -p "$BIN_DIR" "$CACHE_DIR"
 
+GITHUB_API_HEADERS=(-H "User-Agent: Codex")
+if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+  GITHUB_API_HEADERS+=(-H "Authorization: Bearer $GITHUB_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28")
+fi
+
 case "$(uname -m)" in
   arm64)
     NM_PLATFORM="osx-arm64"
@@ -21,7 +26,7 @@ case "$(uname -m)" in
 esac
 
 NM_ASSET_URL="$(
-  curl -fsSL https://api.github.com/repos/nilaoda/N_m3u8DL-RE/releases/latest |
+  curl -fsSL "${GITHUB_API_HEADERS[@]}" https://api.github.com/repos/nilaoda/N_m3u8DL-RE/releases/latest |
     node -e '
       let input = "";
       process.stdin.on("data", chunk => input += chunk);
