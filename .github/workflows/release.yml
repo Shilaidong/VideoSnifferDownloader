@@ -93,12 +93,13 @@ jobs:
             release_args+=(--prerelease)
           fi
 
-          if ! gh release view "${TAG_NAME}" >/dev/null 2>&1; then
+          if ! gh release view "${TAG_NAME}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
             gh release create "${TAG_NAME}" \
+              --repo "${GITHUB_REPOSITORY}" \
               --title "${TAG_NAME}" \
               --target "${GITHUB_SHA}" \
               --generate-notes \
               "${release_args[@]}"
           fi
 
-          gh release upload "${TAG_NAME}" dist/*.zip --clobber
+          gh release upload "${TAG_NAME}" dist/*.zip --repo "${GITHUB_REPOSITORY}" --clobber
