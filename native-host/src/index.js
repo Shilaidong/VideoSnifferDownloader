@@ -6,6 +6,12 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 
 const HOST_NAME = "com.videosnifferdownloader.host";
+const SUPPORTED_PLATFORMS = new Set(["windows", "macos"]);
+
+if (process.env.VIDEO_SNIFFER_RUN_DOWNLOAD === "1") {
+  const exitCode = runDownloadFromFile(process.env.VIDEO_SNIFFER_REQUEST_FILE);
+  process.exit(exitCode);
+}
 
 let inputBuffer = Buffer.alloc(0);
 
@@ -30,36 +36,64 @@ function consumeMessages() {
       const message = JSON.parse(rawMessage);
       const response = dispatch(message);
       writeMessage({ ok: true, ...response });
+      scheduleNativeHostExit();
     } catch (error) {
       writeMessage({
         ok: false,
         error: error instanceof Error ? error.message : String(error)
       });
+      scheduleNativeHostExit();
     }
   }
 }
 
 function dispatch(message) {
-  if (!message || message.action !== "launchDownload") {
-    throw new Error("Unsupported native host action.");
+  if (!message || typeof message !== "object") {
+    throw new Error("Unsupported native host message.");
   }
 
-  return launchDownload(message.item || {});
+  if (message.action === "getHostInfo") {
+    return getHostInfo();
+  }
+
+  if (message.action === "launchDownload") {
+    return launchDownload(message.item || {}, message.options || {});
+  }
+
+  throw new Error("Unsupported native host action.");
 }
 
-function launchDownload(item) {
+function getHostInfo() {
+  const platform = getCurrentPlatform();
+  return {
+    hostName: HOST_NAME,
+    platform,
+    supportedPlatforms: Array.from(SUPPORTED_PLATFORMS),
+    runtimeRoot: resolveRuntimeRoot()
+  };
+}
+
+function launchDownload(item, options) {
+  const currentPlatform = getCurrentPlatform();
+  const requestedPlatform = normalizeRequestedPlatform(options.platform);
+
+  if (!SUPPORTED_PLATFORMS.has(currentPlatform)) {
+    throw new Error(`当前系统暂不支持：${process.platform}`);
+  }
+
+  if (requestedPlatform !== "auto" && requestedPlatform !== currentPlatform) {
+    throw new Error(`当前安装的是 ${formatPlatformName(currentPlatform)} 宿主，不能使用 ${formatPlatformName(requestedPlatform)} 启动方式。`);
+  }
+
   const runtimeRoot = resolveRuntimeRoot();
   const binDir = path.join(runtimeRoot, "bin");
   const hostDir = path.join(runtimeRoot, "native-host");
   const requestDir = path.join(hostDir, "requests");
-  const runnerScript = path.join(hostDir, "run-download.ps1");
-  const openerScript = path.join(hostDir, "open-cmd-window.ps1");
   const debugLogPath = path.join(hostDir, "native-host.log");
+  const binaries = getRuntimeBinaries(currentPlatform, binDir);
 
-  ensureFileExists(path.join(binDir, "N_m3u8DL-RE.exe"), "Native host missing runtime/bin/N_m3u8DL-RE.exe");
-  ensureFileExists(path.join(binDir, "ffmpeg.exe"), "Native host missing runtime/bin/ffmpeg.exe");
-  ensureFileExists(runnerScript, "Native host missing runtime/native-host/run-download.ps1");
-  ensureFileExists(openerScript, "Native host missing runtime/native-host/open-cmd-window.ps1");
+  ensureFileExists(binaries.nm3u8Path, `Native host missing ${path.relative(runtimeRoot, binaries.nm3u8Path)}`);
+  ensureFileExists(binaries.ffmpegPath, `Native host missing ${path.relative(runtimeRoot, binaries.ffmpegPath)}`);
 
   fs.mkdirSync(requestDir, { recursive: true });
 
@@ -68,58 +102,30 @@ function launchDownload(item) {
   fs.mkdirSync(downloadsDir, { recursive: true });
   fs.mkdirSync(tempDir, { recursive: true });
 
+  cleanupOldLaunchFiles(hostDir, requestDir);
+
   const requestId = `${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
   const requestPath = path.join(requestDir, `request-${requestId}.json`);
-  const launcherPath = path.join(hostDir, `launch-${requestId}.cmd`);
+  const launcherPath = createLauncherPath(hostDir, requestId, currentPlatform);
 
   const payload = {
     hostName: HOST_NAME,
+    platform: currentPlatform,
     url: item.url,
     pageUrl: item.pageUrl || "",
     saveName: sanitizeTitle(item.title || "video"),
     downloadsDir,
     tempDir,
-    nm3u8Path: path.join(binDir, "N_m3u8DL-RE.exe"),
-    ffmpegPath: path.join(binDir, "ffmpeg.exe"),
+    nm3u8Path: binaries.nm3u8Path,
+    ffmpegPath: binaries.ffmpegPath,
     headers: filterHeaders(item.requestHeaders || {})
   };
 
-  fs.writeFileSync(requestPath, `\uFEFF${JSON.stringify(payload, null, 2)}`, "utf8");
-  fs.writeFileSync(
-    launcherPath,
-    [
-      "@echo off",
-      "setlocal",
-      "chcp 65001>nul",
-      `cd /d "${escapeForCmd(runtimeRoot)}"`,
-      `powershell.exe -NoLogo -ExecutionPolicy Bypass -File "${escapeForCmd(runnerScript)}" "${escapeForCmd(requestPath)}"`,
-      "echo.",
-      "echo [Video Sniffer Downloader] Task finished. Exit code: %errorlevel%",
-      "endlocal"
-    ].join("\r\n"),
-    "utf8"
-  );
+  fs.writeFileSync(requestPath, JSON.stringify(payload, null, 2), "utf8");
+  writeLauncher(launcherPath, requestPath, runtimeRoot, currentPlatform, payload, debugLogPath);
   appendDebugLog(debugLogPath, `launch request created: ${requestPath}`);
 
-  const openResult = spawnSync(
-    "powershell.exe",
-    [
-      "-NoLogo",
-      "-NoProfile",
-      "-ExecutionPolicy",
-      "Bypass",
-      "-File",
-      openerScript,
-      launcherPath,
-      hostDir
-    ],
-    {
-      cwd: hostDir,
-      windowsHide: false,
-      encoding: "utf8"
-    }
-  );
-
+  const openResult = openLauncher(launcherPath, requestPath, runtimeRoot, hostDir, currentPlatform);
   appendDebugLog(debugLogPath, `opener exit=${openResult.status} error=${openResult.error ? openResult.error.message : ""}`);
   if (openResult.stdout) {
     appendDebugLog(debugLogPath, `opener stdout: ${openResult.stdout.trim()}`);
@@ -133,15 +139,229 @@ function launchDownload(item) {
   }
 
   if (openResult.status !== 0) {
-    throw new Error(openResult.stderr?.trim() || `open-cmd-window.ps1 exited with code ${openResult.status}`);
+    throw new Error(openResult.stderr?.trim() || `Launcher exited with code ${openResult.status}`);
   }
 
   return {
     launched: true,
+    platform: currentPlatform,
     requestPath,
     launcherPath,
     downloadsDir
   };
+}
+
+function runDownloadFromFile(requestPath) {
+  if (!requestPath) {
+    console.error("[Video Sniffer Downloader] Missing request file.");
+    return 1;
+  }
+
+  const debugLogPath = path.join(path.dirname(path.dirname(requestPath)), "native-host.log");
+
+  try {
+    ensureFileExists(requestPath, `Request file not found: ${requestPath}`);
+    const request = JSON.parse(fs.readFileSync(requestPath, "utf8").replace(/^\uFEFF/, ""));
+    const args = buildDownloaderArgs(request);
+    appendDebugLog(debugLogPath, `runner start url=${request.url}`);
+    const result = spawnSync(request.nm3u8Path, args, {
+      stdio: "inherit",
+      windowsHide: false
+    });
+
+    const exitCode = typeof result.status === "number" ? result.status : 1;
+    if (result.error) {
+      appendDebugLog(debugLogPath, `runner error=${result.error.message}`);
+      console.error(`[Video Sniffer Downloader] Failed to run N_m3u8DL-RE: ${result.error.message}`);
+      return 1;
+    }
+
+    appendDebugLog(debugLogPath, `runner exit=${exitCode}`);
+    if (exitCode !== 0) {
+      console.log("");
+      console.log(`[Video Sniffer Downloader] N_m3u8DL-RE exited with code ${exitCode}`);
+    }
+
+    return exitCode;
+  } catch (error) {
+    appendDebugLog(debugLogPath, `runner exception=${error instanceof Error ? error.message : String(error)}`);
+    console.error(`[Video Sniffer Downloader] ${error instanceof Error ? error.message : String(error)}`);
+    return 1;
+  } finally {
+    fs.rmSync(requestPath, { force: true });
+  }
+}
+
+function buildDownloaderArgs(request) {
+  const args = [
+    request.url,
+    "--save-dir",
+    request.downloadsDir,
+    "--tmp-dir",
+    request.tempDir,
+    "--save-name",
+    request.saveName,
+    "--ffmpeg-binary-path",
+    request.ffmpegPath,
+    "--append-url-params",
+    "--auto-select",
+    "--concurrent-download",
+    "--use-system-proxy",
+    "--ui-language",
+    "zh-CN"
+  ];
+
+  for (const [name, value] of Object.entries(request.headers || {})) {
+    if (!String(value || "").trim()) {
+      continue;
+    }
+
+    args.push("-H", `${name}: ${value}`);
+  }
+
+  return args;
+}
+
+function getCurrentPlatform() {
+  if (process.platform === "win32") {
+    return "windows";
+  }
+
+  if (process.platform === "darwin") {
+    return "macos";
+  }
+
+  return process.platform;
+}
+
+function normalizeRequestedPlatform(value) {
+  if (value === "windows" || value === "macos") {
+    return value;
+  }
+
+  return "auto";
+}
+
+function formatPlatformName(platform) {
+  if (platform === "windows") {
+    return "Windows";
+  }
+
+  if (platform === "macos") {
+    return "macOS";
+  }
+
+  return platform;
+}
+
+function getRuntimeBinaries(platform, binDir) {
+  if (platform === "windows") {
+    return {
+      nm3u8Path: path.join(binDir, "N_m3u8DL-RE.exe"),
+      ffmpegPath: path.join(binDir, "ffmpeg.exe")
+    };
+  }
+
+  return {
+    nm3u8Path: path.join(binDir, "N_m3u8DL-RE"),
+    ffmpegPath: path.join(binDir, "ffmpeg")
+  };
+}
+
+function createLauncherPath(hostDir, requestId, platform) {
+  const extension = platform === "windows" ? "cmd" : "sh";
+  return path.join(hostDir, `launch-${requestId}.${extension}`);
+}
+
+function writeLauncher(launcherPath, requestPath, runtimeRoot, platform, payload, debugLogPath) {
+  const hostExe = process.execPath;
+
+  if (platform === "windows") {
+    fs.writeFileSync(
+      launcherPath,
+      [
+        "@echo off",
+        "setlocal",
+        "chcp 65001>nul",
+        `cd /d "${escapeForCmd(runtimeRoot)}"`,
+        "set VIDEO_SNIFFER_RUN_DOWNLOAD=1",
+        `set VIDEO_SNIFFER_REQUEST_FILE=${escapeForCmd(requestPath)}`,
+        `"${escapeForCmd(hostExe)}"`,
+        "set EXIT_CODE=%errorlevel%",
+        `del /q "${escapeForCmd(requestPath)}" >nul 2>nul`,
+        "echo.",
+        "echo [Video Sniffer Downloader] Task finished. Exit code: %EXIT_CODE%",
+        "endlocal"
+      ].join("\r\n"),
+      "utf8"
+    );
+    return;
+  }
+
+  if (platform === "macos") {
+    const args = buildDownloaderArgs(payload);
+    const command = [payload.nm3u8Path, ...args].map(shellQuoteArg).join(" ");
+    fs.writeFileSync(
+      launcherPath,
+      [
+        "#!/bin/bash",
+        "set -u",
+        `REQUEST_PATH=${shellQuoteArg(requestPath)}`,
+        `LAUNCHER_PATH=${shellQuoteArg(launcherPath)}`,
+        `LOG_PATH=${shellQuoteArg(debugLogPath)}`,
+        `cd ${shellQuoteArg(runtimeRoot)}`,
+        "mkdir -p \"$(dirname \"$LOG_PATH\")\"",
+        `printf '[%s] runner start url=%s\\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" ${shellQuoteArg(payload.url)} >> "$LOG_PATH"`,
+        command,
+        "EXIT_CODE=$?",
+        "printf '[%s] runner exit=%s\\n' \"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\" \"$EXIT_CODE\" >> \"$LOG_PATH\"",
+        "rm -f \"$REQUEST_PATH\" \"$LAUNCHER_PATH\"",
+        "echo",
+        "echo \"[Video Sniffer Downloader] Task finished. Exit code: $EXIT_CODE\"",
+        "echo \"Press any key to close this window.\"",
+        "read -n 1 -s",
+        "exit \"$EXIT_CODE\"",
+        ""
+      ].join("\n"),
+      "utf8"
+    );
+    fs.chmodSync(launcherPath, 0o700);
+    return;
+  }
+
+  throw new Error(`Unsupported launcher platform: ${platform}`);
+}
+
+function openLauncher(launcherPath, requestPath, runtimeRoot, hostDir, platform) {
+  if (platform === "windows") {
+    const openerScript = path.join(hostDir, "open-cmd-window.ps1");
+    ensureFileExists(openerScript, "Native host missing runtime/native-host/open-cmd-window.ps1");
+    return spawnSync(
+      "powershell.exe",
+      [
+        "-NoLogo",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        openerScript,
+        launcherPath,
+        hostDir
+      ],
+      {
+        cwd: hostDir,
+        windowsHide: false,
+        encoding: "utf8"
+      }
+    );
+  }
+
+  const terminalCommand = `/bin/bash ${shellQuoteArg(launcherPath)}`;
+
+  return spawnSync("osascript", ["-e", `tell application "Terminal" to do script "${escapeForAppleScript(terminalCommand)}"`], {
+    cwd: hostDir,
+    encoding: "utf8"
+  });
 }
 
 function resolveRuntimeRoot() {
@@ -168,6 +388,25 @@ function filterHeaders(headers) {
   return result;
 }
 
+function cleanupOldLaunchFiles(hostDir, requestDir) {
+  const maxAgeMs = 24 * 60 * 60 * 1000;
+  const now = Date.now();
+
+  for (const dir of [hostDir, requestDir]) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (!entry.isFile() || !/^launch-|^request-/.test(entry.name)) {
+        continue;
+      }
+
+      const filePath = path.join(dir, entry.name);
+      const stat = fs.statSync(filePath);
+      if (now - stat.mtimeMs > maxAgeMs) {
+        fs.rmSync(filePath, { force: true });
+      }
+    }
+  }
+}
+
 function sanitizeTitle(value) {
   const cleaned = String(value || "video")
     .replace(/[<>:"/\\|?*\u0000-\u001F]/g, " ")
@@ -180,6 +419,23 @@ function escapeForCmd(value) {
   return String(value).replace(/"/g, '""');
 }
 
+function escapeForShell(value) {
+  return String(value).replace(/(["\\$`])/g, "\\$1");
+}
+
+function shellQuoteArg(value) {
+  const text = String(value ?? "");
+  if (!text) {
+    return "''";
+  }
+
+  return `'${text.replace(/'/g, "'\\''")}'`;
+}
+
+function escapeForAppleScript(value) {
+  return String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
 function appendDebugLog(logPath, line) {
   fs.appendFileSync(logPath, `[${new Date().toISOString()}] ${line}\n`, "utf8");
 }
@@ -190,4 +446,8 @@ function writeMessage(message) {
   header.writeUInt32LE(payload.length, 0);
   process.stdout.write(header);
   process.stdout.write(payload);
+}
+
+function scheduleNativeHostExit() {
+  setImmediate(() => process.exit(0));
 }

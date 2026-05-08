@@ -1,10 +1,14 @@
 node_modules/
 .tmp/
+.DS_Store
 runtime/bin/*
 !runtime/bin/.gitkeep
 runtime/native-host/*.exe
+runtime/native-host/video-sniffer-host
 runtime/native-host/*.json
 runtime/native-host/*.cmd
+runtime/native-host/*.command
+runtime/native-host/*.sh
 runtime/native-host/*.ps1
 runtime/native-host/*.log
 runtime/native-host/requests/

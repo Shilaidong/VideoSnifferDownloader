@@ -66,6 +66,28 @@ body {
   margin: 14px 0;
 }
 
+.settings {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+.settings label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 252, 247, 0.96);
+  color: var(--ink);
+  font: inherit;
+}
+
 button {
   border: 0;
   border-radius: 999px;

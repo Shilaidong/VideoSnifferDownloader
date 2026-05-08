@@ -8,14 +8,20 @@
 
 <https://github.com/Shilaidong/VideoSnifferDownloader/releases>
 
-下载名字类似下面这个压缩包：
+按你的电脑系统下载名字类似下面的压缩包。
 
-`VideoSnifferDownloader-vX.Y.Z-windows-x64-portable.zip`
+- Windows 电脑：`VideoSnifferDownloader-vX.Y.Z-windows-x64-portable.zip`
+- 苹果芯片 Mac，也就是 M1 / M2 / M3 / M4：`VideoSnifferDownloader-vX.Y.Z-macos-arm64-portable.zip`
+- Intel 芯片 Mac：`VideoSnifferDownloader-vX.Y.Z-macos-x64-portable.zip`
+
+不知道 Mac 是哪种芯片的话，点左上角苹果图标，选择“关于本机”，看“芯片”或“处理器”。
 
 ## 安装步骤
 
 1. 把压缩包解压到你想长期保存的位置。
-2. 双击 `install.bat`。
+2. 执行安装脚本。
+   - Windows：双击 `install.bat`
+   - macOS：打开终端，进入解压后的文件夹，执行 `./install-macos.sh`
 3. 打开 Chrome，进入 `chrome://extensions/`。
 4. 打开右上角“开发者模式”。
 5. 点击“加载已解压的扩展程序”。
@@ -27,27 +33,33 @@
 2. 等几秒，让插件自动嗅探视频。
 3. 点击浏览器右上角的插件图标。
 4. 在列表里选中视频。
-5. 点击“发送到 N_m3u8DL-RE”。
-6. 稍等片刻，会弹出 `cmd` 窗口开始下载。
+5. “启动方式”一般保持“自动识别当前系统”即可；如果你确定要手动选，也可以切到 Windows 或 macOS。
+6. 点击“发送到 N_m3u8DL-RE”。
+7. 稍等片刻，会弹出终端窗口开始下载。
 
 ## 下载到哪里
 
 默认下载到：
 
-`C:\Users\你的用户名\Downloads`
+- Windows：`C:\Users\你的用户名\Downloads`
+- macOS：`/Users/你的用户名/Downloads`
 
 ## 常见问题
 
 ### 1. 为什么我已经解压了，还要点 `install.bat`
 
-因为 Chrome 的 Native Messaging 机制需要在当前 Windows 用户下做一次本地注册。
+因为 Chrome 的 Native Messaging 机制需要在当前电脑用户下做一次本地注册。
+
+macOS 用户对应的是执行 `./install-macos.sh`。
 
 ### 2. 我把整个文件夹移动了，为什么又不能用了
 
-因为注册表里记录的是旧路径。
+因为 Chrome 记录的是旧路径。
 
 解决办法：
-重新双击一次 `install.bat`。
+
+- Windows：重新双击一次 `install.bat`
+- macOS：重新执行一次 `./install-macos.sh`
 
 ### 3. 为什么没有嗅探到视频
 
@@ -79,6 +91,7 @@
 - 把结果交给本地 `N_m3u8DL-RE`
 - 配好 `ffmpeg`
 - 用网页标题自动命名
+- Windows 和 macOS 用同一套扩展界面，弹窗里可以切换启动方式
 
 上游开源项目说明见：
 

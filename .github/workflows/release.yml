@@ -1,0 +1,104 @@
+name: Build release packages
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag to create or update, for example v0.1.0"
+        required: true
+        default: "v0.2.0"
+      prerelease:
+        description: "Mark the GitHub Release as a prerelease"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x64
+            runner: windows-latest
+            build_command: npm run package:release
+            artifact_pattern: dist/*windows-x64-portable.zip
+          - name: macos-x64
+            runner: macos-15-intel
+            build_command: npm run package:release:mac
+            artifact_pattern: dist/*macos-x64-portable.zip
+          - name: macos-arm64
+            runner: macos-14
+            build_command: npm run package:release:mac
+            artifact_pattern: dist/*macos-arm64-portable.zip
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build portable package
+        run: ${{ matrix.build_command }}
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VideoSnifferDownloader-${{ matrix.name }}
+          path: ${{ matrix.artifact_pattern }}
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download package artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create or update release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.ref_type == 'tag' && github.ref_name || inputs.release_tag }}
+          PRERELEASE: ${{ inputs.prerelease || false }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${TAG_NAME}" ]]; then
+            echo "Release tag is required." >&2
+            exit 1
+          fi
+
+          release_args=()
+          if [[ "${PRERELEASE}" == "true" ]]; then
+            release_args+=(--prerelease)
+          fi
+
+          if ! gh release view "${TAG_NAME}" >/dev/null 2>&1; then
+            gh release create "${TAG_NAME}" \
+              --title "${TAG_NAME}" \
+              --target "${GITHUB_SHA}" \
+              --generate-notes \
+              "${release_args[@]}"
+          fi
+
+          gh release upload "${TAG_NAME}" dist/*.zip --clobber

@@ -43,6 +43,7 @@ New-Item -ItemType Directory -Force -Path (Join-Path $stageDir "runtime\bin") | 
 New-Item -ItemType Directory -Force -Path (Join-Path $stageDir "runtime\native-host") | Out-Null
 
 Copy-Item -LiteralPath (Join-Path $root "README.md") -Destination (Join-Path $stageDir "README.md") -Force
+Copy-Item -LiteralPath (Join-Path $root "README-BEGINNER.md") -Destination (Join-Path $stageDir "README-BEGINNER.md") -Force
 Copy-Item -LiteralPath (Join-Path $root "LICENSE") -Destination (Join-Path $stageDir "LICENSE") -Force
 Copy-Item -LiteralPath (Join-Path $root "THIRD_PARTY_NOTICES.md") -Destination (Join-Path $stageDir "THIRD_PARTY_NOTICES.md") -Force
 Copy-Item -LiteralPath (Join-Path $root "release-assets\install.ps1") -Destination (Join-Path $stageDir "install.ps1") -Force

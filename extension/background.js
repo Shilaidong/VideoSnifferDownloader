@@ -104,7 +104,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
     if (message.type === "START_DOWNLOAD") {
       try {
-        const result = await launchNativeDownload(message.tabId, message.itemId);
+        const result = await launchNativeDownload(message.tabId, message.itemId, message.platform);
         sendResponse({ ok: true, result });
       } catch (error) {
         sendResponse({ ok: false, error: error.message });
@@ -230,7 +230,7 @@ function getTabMedia(tabId) {
   return (MEDIA_STORE.get(tabId) ?? []).map((item) => ({ ...item }));
 }
 
-async function launchNativeDownload(tabId, itemId) {
+async function launchNativeDownload(tabId, itemId, platform) {
   const item = (MEDIA_STORE.get(tabId) ?? []).find((entry) => entry.id === itemId);
   if (!item) {
     throw new Error("未找到要发送的资源，请刷新页面后再试。");
@@ -238,7 +238,10 @@ async function launchNativeDownload(tabId, itemId) {
 
   const payload = {
     action: "launchDownload",
-    item
+    item,
+    options: {
+      platform: normalizePlatformPreference(platform)
+    }
   };
 
   return new Promise((resolve, reject) => {
@@ -256,6 +259,10 @@ async function launchNativeDownload(tabId, itemId) {
       resolve(response);
     });
   });
+}
+
+function normalizePlatformPreference(value) {
+  return value === "windows" || value === "macos" ? value : "auto";
 }
 
 function updateBadge(tabId) {

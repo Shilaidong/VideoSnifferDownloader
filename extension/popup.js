@@ -6,12 +6,30 @@ const statusNode = document.getElementById("status");
 const mediaList = document.getElementById("mediaList");
 const refreshButton = document.getElementById("refreshButton");
 const clearButton = document.getElementById("clearButton");
+const platformSelect = document.getElementById("platformSelect");
 const mediaCardTemplate = document.getElementById("mediaCardTemplate");
+const PLATFORM_STORAGE_KEY = "downloadPlatform";
 
 refreshButton.addEventListener("click", () => loadActiveTab(true));
 clearButton.addEventListener("click", clearCurrentTab);
+platformSelect.addEventListener("change", savePlatformPreference);
 
-loadActiveTab(false);
+initialize();
+
+async function initialize() {
+  await loadPlatformPreference();
+  await loadActiveTab(false);
+}
+
+async function loadPlatformPreference() {
+  const saved = await chrome.storage.local.get(PLATFORM_STORAGE_KEY).catch(() => ({}));
+  platformSelect.value = saved?.[PLATFORM_STORAGE_KEY] || "auto";
+}
+
+async function savePlatformPreference() {
+  await chrome.storage.local.set({ [PLATFORM_STORAGE_KEY]: platformSelect.value });
+  setStatus(`启动方式已切换为：${platformSelect.options[platformSelect.selectedIndex].textContent}`, false, true);
+}
 
 async function loadActiveTab(showStatus) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -97,7 +115,8 @@ async function launchDownload(item, button) {
   const response = await chrome.runtime.sendMessage({
     type: "START_DOWNLOAD",
     tabId: currentTabId,
-    itemId: item.id
+    itemId: item.id,
+    platform: platformSelect.value
   });
 
   button.disabled = false;
@@ -107,7 +126,7 @@ async function launchDownload(item, button) {
     return;
   }
 
-  setStatus("已启动下载任务，新的 cmd 窗口应该已经弹出。", false, true);
+  setStatus("已启动下载任务，新的终端窗口应该已经弹出。", false, true);
 }
 
 function setStatus(message, isError = false, isSuccess = false) {

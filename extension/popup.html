@@ -19,6 +19,15 @@
         <button id="clearButton" type="button">清空当前页</button>
       </section>
 
+      <section class="settings">
+        <label for="platformSelect">启动方式</label>
+        <select id="platformSelect">
+          <option value="auto">自动识别当前系统</option>
+          <option value="windows">Windows cmd 窗口</option>
+          <option value="macos">macOS 终端窗口</option>
+        </select>
+      </section>
+
       <section id="status" class="status"></section>
       <section id="mediaList" class="list"></section>
     </main>

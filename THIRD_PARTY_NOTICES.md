@@ -23,9 +23,15 @@ This repository is released under `GPL-3.0-or-later`, but it depends on and/or r
 - Upstream binary source:
   <https://github.com/BtbN/FFmpeg-Builds/releases>
 - Role in this project:
-  The packaged runtime downloads and redistributes Windows `ffmpeg` binaries so that `N_m3u8DL-RE` can merge and process media correctly.
+  The Windows packaged runtime downloads and redistributes Windows `ffmpeg` binaries so that `N_m3u8DL-RE` can merge and process media correctly.
 - Note:
   The current automation downloads the `win64-gpl` build, so redistribution and downstream use must also respect the licenses that apply to that FFmpeg build and its enabled components.
+
+### 4. ffmpeg-static
+
+- Upstream: <https://github.com/eugeneware/ffmpeg-static>
+- Role in this project:
+  The macOS build scripts use `ffmpeg-static` to provide the current-platform `ffmpeg` binary for portable releases.
 
 ## Important Notes
 
