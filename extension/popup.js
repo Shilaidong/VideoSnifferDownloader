@@ -126,7 +126,7 @@ async function launchDownload(item, button) {
     return;
   }
 
-  setStatus("已启动下载任务，新的终端窗口应该已经弹出。", false, true);
+  setStatus("已启动下载任务，请稍后在下载目录查看文件。", false, true);
 }
 
 function setStatus(message, isError = false, isSuccess = false) {

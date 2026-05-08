@@ -9,7 +9,7 @@ on:
       release_tag:
         description: "Release tag to create or update, for example v0.1.0"
         required: true
-        default: "v0.2.2"
+        default: "v0.2.3"
       prerelease:
         description: "Mark the GitHub Release as a prerelease"
         required: true

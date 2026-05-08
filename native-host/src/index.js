@@ -3,7 +3,7 @@
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const { spawnSync } = require("child_process");
+const { spawn, spawnSync } = require("child_process");
 
 const HOST_NAME = "com.videosnifferdownloader.host";
 const SUPPORTED_PLATFORMS = new Set(["windows", "macos"]);
@@ -356,10 +356,34 @@ function openLauncher(launcherPath, requestPath, runtimeRoot, hostDir, platform)
     );
   }
 
-  return spawnSync("open", [launcherPath], {
-    cwd: hostDir,
-    encoding: "utf8"
-  });
+  fs.rmSync(launcherPath, { force: true });
+
+  const logPath = path.join(hostDir, "native-host.log");
+  const outFd = fs.openSync(logPath, "a");
+  const errFd = fs.openSync(logPath, "a");
+
+  try {
+    const child = spawn(process.execPath, [], {
+      cwd: runtimeRoot,
+      detached: true,
+      env: {
+        ...process.env,
+        VIDEO_SNIFFER_RUN_DOWNLOAD: "1",
+        VIDEO_SNIFFER_REQUEST_FILE: requestPath
+      },
+      stdio: ["ignore", outFd, errFd]
+    });
+    child.unref();
+  } finally {
+    fs.closeSync(outFd);
+    fs.closeSync(errFd);
+  }
+
+  return {
+    status: 0,
+    stdout: "",
+    stderr: ""
+  };
 }
 
 function resolveRuntimeRoot() {
